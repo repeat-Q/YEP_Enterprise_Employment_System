@@ -204,10 +204,11 @@ async function loadReports() {
     if (searchForm.enterpriseId) params.enterprise_id = searchForm.enterpriseId
     if (searchForm.status) params.status = searchForm.status
     if (searchForm.quarter) params.quarter = searchForm.quarter
-    const { data } = await http.get('/api/v1/reports/', { params })
+    const { data } = await http.get('/api/v1/admin/reports', { params })
     reports.value = data.items || data || []
     pagination.total = data.total || reports.value.length
   } catch (e) {
+    console.error(e)
     ElMessage.error('加载报表列表失败')
   } finally {
     loading.value = false
@@ -250,15 +251,16 @@ async function saveReport() {
     try {
       const payload = { ...form, employment_count: form.urban_employment, unemployment_count: form.urban_unemployment, employment_difficulty_count: form.employment_difficulty, registered_unemployment_count: form.registered_unemployment }
       if (editingReport.value) {
-        await http.put(`/api/v1/reports/${editingReport.value.id}`, payload)
+        await http.put(`/api/v1/admin/reports/${editingReport.value.id}`, payload)
         ElMessage.success('报表更新成功')
       } else {
-        await http.post('/api/v1/reports/', payload)
+        await http.post('/api/v1/admin/reports', payload)
         ElMessage.success('报表创建成功')
       }
       showCreateDialog.value = false
       loadReports()
     } catch (e) {
+      console.error(e)
       ElMessage.error(editingReport.value ? '更新失败' : '创建失败')
     } finally {
       saving.value = false
@@ -269,7 +271,7 @@ async function saveReport() {
 async function submitReport(row) {
   try {
     await ElMessageBox.confirm('确定要提交此报表吗？提交后将进入审核流程。', '提交确认', { type: 'warning' })
-    await http.put(`/api/v1/reports/${row.id}/submit`)
+    await http.put(`/api/v1/admin/reports/${row.id}/submit`)
     ElMessage.success('提交成功')
     loadReports()
   } catch (e) {
@@ -281,7 +283,7 @@ async function rejectReport(row) {
   try {
     await ElMessageBox.prompt('请输入驳回原因', '驳回报表', { type: 'warning', confirmButtonText: '确定驳回', cancelButtonText: '取消' })
       .then(async ({ value }) => {
-        await http.put(`/api/v1/reports/${row.id}/reject`, { reason: value })
+        await http.put(`/api/v1/admin/reports/${row.id}/reject?reason=${encodeURIComponent(value || '')}`)
         ElMessage.success('已驳回')
         loadReports()
       })
