@@ -1,9 +1,43 @@
-node_modules/
+# Python
 __pycache__/
-*.pyc
-.env
+*.py[cod]
 *.egg-info/
 dist/
-.vite/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Node
+node_modules/
+npm-debug.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test
+.pytest_cache/
+.coverage
+
+# Misc
 *.log
+*.tmp
 .DS_Store
+Thumbs.db
+
+# Backend
+backend/uploads/
+
+# Frontend build
+frontend/dist/
+
+# PowerShell scripts (local use only)
+*.ps1
+!start_all.bat
+!start.bat
