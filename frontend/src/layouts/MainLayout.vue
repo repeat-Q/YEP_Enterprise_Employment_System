@@ -69,6 +69,7 @@ const roleMenus = {
   ],
   province: [
     { path: '/province/dashboard', icon: 'House', label: '首页概览' },
+    { path: '/province/admin/reports', icon: 'Document', label: '报表管理' },
     { path: '/province/approve', icon: 'Stamp', label: '待审批报表' },
     { path: '/province/analytics', icon: 'TrendCharts', label: '数据分析' },
     { path: '/province/screen', icon: 'Monitor', label: '数据大屏' },
@@ -81,6 +82,7 @@ const roleMenus = {
   ],
   admin: [
     { path: '/province/dashboard', icon: 'House', label: '首页概览' },
+    { path: '/province/admin/reports', icon: 'Document', label: '报表管理' },
     { path: '/province/approve', icon: 'Stamp', label: '审批管理' },
     { path: '/province/analytics', icon: 'TrendCharts', label: '数据分析' },
     { path: '/province/admin/users', icon: 'User', label: '用户管理' },

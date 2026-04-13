@@ -41,6 +41,7 @@ const router = createRouter({
         { path: 'screen', component: () => import('@/views/province/DataScreen.vue') },
         { path: 'admin/users', component: () => import('@/views/admin/UserManage.vue') },
         { path: 'admin/enterprises', component: () => import('@/views/admin/EnterpriseManage.vue') },
+        { path: 'admin/reports', component: () => import('@/views/admin/ReportManage.vue') },
       ]
     },
   ]
