@@ -54,10 +54,19 @@ const rules = {
 }
 
 const testAccounts = [
-  { username: 'enterprise1', pwd: 'ent123456', label: '企业端', type: 'enterprise' },
-  { username: 'city_km', pwd: 'city123456', label: '市级审核', type: 'city' },
+  // 企业端用户
+  { username: 'enterprise1', pwd: 'ent123456', label: '企业-张三', type: 'enterprise' },
+  { username: 'enterprise2', pwd: 'ent123456', label: '企业-李四', type: 'enterprise' },
+  { username: 'enterprise3', pwd: 'ent123456', label: '企业-王五', type: 'enterprise' },
+  { username: 'testuser', pwd: 'ent123456', label: '企业-测试', type: 'enterprise' },
+  // 市级审核用户
+  { username: 'city_km', pwd: 'city123456', label: '市级-昆明', type: 'city' },
+  { username: 'city_dali', pwd: 'city123456', label: '市级-大理', type: 'city' },
+  { username: 'city_qj', pwd: 'city123456', label: '市级-曲靖', type: 'city' },
+  // 省级用户
   { username: 'province', pwd: 'prov123456', label: '省级审批', type: 'province' },
   { username: 'analyst', pwd: 'analyst123', label: '数据分析', type: 'analyst' },
+  // 系统管理员
   { username: 'admin', pwd: 'admin123', label: '系统管理员', type: 'admin' },
 ]
 

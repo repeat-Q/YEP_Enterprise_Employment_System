@@ -41,7 +41,11 @@ def create_report(
     if existing and existing.status not in [ReportStatus.draft, ReportStatus.city_rejected, ReportStatus.province_rejected]:
         raise HTTPException(status_code=400, detail="该周期报表已存在且处于审核流程中")
 
-    report = EmploymentReport(enterprise_id=current_user.enterprise_id, **data.model_dump())
+    # 处理年份可能为字符串的情况
+    report_data = data.model_dump()
+    if 'report_year' in report_data and isinstance(report_data['report_year'], str):
+        report_data['report_year'] = int(report_data['report_year'])
+    report = EmploymentReport(enterprise_id=current_user.enterprise_id, **report_data)
     db.add(report)
     db.flush()
     log_action(db, current_user.id, "创建报表", "employment_reports", report.id,
@@ -174,7 +178,7 @@ def city_review_report(
     data: ReviewRequest,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.city))
+    current_user: User = Depends(require_roles(UserRole.city, UserRole.admin))
 ):
     """市级审核报表"""
     report = db.query(EmploymentReport).filter(EmploymentReport.id == report_id).first()
@@ -333,3 +337,24 @@ def get_employment_trend(
     # 排序
     result = sorted(trend.values(), key=lambda x: x["month"])
     return {"year": year, "trend": result}
+
+
+# ===== 企业端删除报表 =====
+@router.delete("/reports/{report_id}")
+def delete_report(
+    report_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.enterprise))
+):
+    """删除报表（仅草稿或被退回状态可删除）"""
+    report = db.query(EmploymentReport).filter(
+        EmploymentReport.id == report_id,
+        EmploymentReport.enterprise_id == current_user.enterprise_id
+    ).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="报表不存在")
+    if report.status not in [ReportStatus.draft, ReportStatus.city_rejected, ReportStatus.province_rejected]:
+        raise HTTPException(status_code=400, detail="只有草稿或被退回的报表可以删除")
+    db.delete(report)
+    db.commit()
+    return {"message": "报表已删除"}

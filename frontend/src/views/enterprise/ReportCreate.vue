@@ -14,7 +14,9 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="报告年份" prop="report_year">
-              <el-date-picker v-model="form.report_year" type="year" placeholder="选择年份" value-format="YYYY" style="width:100%" @change="onYearChange" />
+              <el-select v-model="form.report_year" placeholder="选择年份" style="width:100%">
+                <el-option v-for="y in yearOptions" :key="y" :label="y+'年'" :value="y" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -139,8 +141,11 @@ const brErrors = ref([])
 const reportId = ref(null)
 
 const now = new Date()
+const currentYear = now.getFullYear()
+const yearOptions = Array.from({length: 10}, (_, i) => currentYear - 5 + i) // 前5年到后4年
+
 const form = ref({
-  report_year: now.getFullYear(),
+  report_year: currentYear,  // 整数格式，el-select直接匹配
   report_month: now.getMonth() + 1,
   period_type: 'monthly',
   half_period: null,
@@ -161,12 +166,6 @@ const form = ref({
 })
 
 const isHalfMonthMode = computed(() => [1, 2, 3].includes(form.value.report_month))
-
-const onYearChange = (val) => {
-  if (val) {
-    form.value.report_year = parseInt(val)
-  }
-}
 
 const onMonthChange = (month) => {
   if ([1, 2, 3].includes(month)) {

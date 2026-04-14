@@ -6,37 +6,27 @@
 
 ```
 前端 (Vue3 + Vite)  -->  后端 (FastAPI)  -->  数据库 (MySQL)
-  http://localhost:8080     http://localhost:8000     localhost:3306
+  http://127.0.0.1:8000     http://127.0.0.1:8000     localhost:3306
+  (静态文件由后端服务)    (API + 前端统一端口)
 ```
 
 ## 快速启动
 
 ### 方式一：一键启动（推荐）
-双击运行 `start_all.bat` 即可启动完整系统。
+双击运行 `start_all.bat` 即可启动完整系统（前后端共用8000端口）。
 
 ### 方式二：手动启动
-
-**1. 启动后端**
 ```bash
 cd backend
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+python start_server.py
 ```
-
-**2. 启动前端（另一个终端）**
-```bash
-cd frontend
-npm install
-npm run build
-# 启动静态服务器
-cd dist
-python -m http.server 8080
-```
+访问 http://127.0.0.1:8000 即可使用系统。
 
 ## 访问地址
 
 | 服务 | 地址 |
 |------|------|
-| 前端页面 | http://127.0.0.1:8080 |
+| 前端页面 | http://127.0.0.1:8000 |
 | 后端API | http://127.0.0.1:8000 |
 | API文档 | http://127.0.0.1:8000/docs |
 | 数据库 | localhost:3306 (yep_employment) |
@@ -45,11 +35,16 @@ python -m http.server 8080
 
 | 角色 | 用户名 | 密码 | 说明 |
 |------|--------|------|------|
-| 系统管理员 | admin | admin123 | 最高权限 |
-| 数据分析 | analyst | analyst123 | 查看统计 |
-| 省级审批 | province | prov123456 | 省级审核 |
-| 市级审核 | city_km | city123456 | 市级审核 |
-| 企业端 | enterprise1 | ent123456 | 数据上报 |
+| 系统管理员 | admin | admin123 | 全权限，含市级审核+省级审批 |
+| 数据分析 | analyst | analyst123 | 省级分析师 |
+| 省级审批 | province | prov123456 | 省级审批官 |
+| 市级审核 | city_km | city123456 | 昆明市 |
+| 市级审核 | city_dali | city123456 | 大理州 |
+| 市级审核 | city_qj | city123456 | 曲靖市 |
+| 企业端 | enterprise1 | ent123456 | 云南昆明科技 |
+| 企业端 | enterprise2 | ent123456 | 云南大理旅游 |
+| 企业端 | enterprise3 | ent123456 | 曲靖鑫源矿业 |
+| 企业端 | testuser | ent123456 | 测试用户 |
 
 ## 功能模块
 

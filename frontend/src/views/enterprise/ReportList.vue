@@ -20,10 +20,11 @@
       <el-table-column prop="submit_time" label="提交时间" width="180">
         <template #default="{row}">{{ row.submit_time ? row.submit_time.slice(0,19).replace('T',' ') : '-' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="160">
+      <el-table-column label="操作" width="220">
         <template #default="{row}">
           <el-button link type="primary" @click="$router.push('/enterprise/report/'+row.id)">查看</el-button>
           <el-button link type="warning" v-if="canEdit(row.status)" @click="editReport(row)">修改</el-button>
+          <el-button link type="danger" v-if="canDelete(row.status)" @click="deleteReport(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -36,6 +37,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import http from '@/utils/http'
 
 const router = useRouter()
@@ -54,11 +56,28 @@ const statusType = (s) => ({
 }[s] || '')
 
 const canEdit = (s) => ['draft','city_rejected','province_rejected'].includes(s)
+const canDelete = (s) => ['draft','city_rejected','province_rejected'].includes(s)
 const editReport = (row) => router.push('/enterprise/report/create?edit='+row.id)
 
-onMounted(async () => {
+const deleteReport = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除 ${row.report_year}年${row.report_month}月 的报表吗？`, '删除确认', { type: 'warning' })
+    await http.delete(`/data/reports/${row.id}`)
+    ElMessage.success('报表已删除')
+    loadReports()
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('删除失败:', e)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+async function loadReports() {
   loading.value = true
   try { reports.value = await http.get('/data/reports') }
   finally { loading.value = false }
-})
+}
+
+onMounted(() => { loadReports() })
 </script>

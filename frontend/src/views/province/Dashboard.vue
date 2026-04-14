@@ -13,8 +13,16 @@
         </el-card>
       </el-col>
     </el-row>
-    <el-card header="待审批报表" style="margin-top:20px">
-      <el-table :data="pendingReports" stripe v-loading="loading">
+
+    <!-- 市级待审核报表 -->
+    <el-card style="margin-top:20px">
+      <template #header>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span>📋 市级待审核报表</span>
+          <el-tag type="warning">{{ cityReports.length }} 条</el-tag>
+        </div>
+      </template>
+      <el-table :data="cityReports" stripe v-loading="loading" empty-text="暂无市级待审核报表">
         <el-table-column label="企业名称" min-width="180">
           <template #default="{row}">{{ row.enterprise_name || '企业'+row.enterprise_id }}</template>
         </el-table-column>
@@ -23,8 +31,46 @@
         </el-table-column>
         <el-table-column prop="current_employed" label="在职人数" width="100" />
         <el-table-column prop="unemployed_count" label="失业人数" width="100" />
-        <el-table-column label="市级审核时间" width="180">
-          <template #default="{row}">{{ (row.city_review_time||'').slice(0,19).replace('T',' ') }}</template>
+        <el-table-column label="状态" width="120" align="center">
+          <template #default>
+            <el-tag type="warning">待市级审核</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="提交时间" width="170">
+          <template #default="{row}">{{ (row.submit_time||'').slice(0,16).replace('T',' ') }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="120">
+          <template #default="{row}">
+            <el-button type="warning" size="small" @click="$router.push('/province/approve/'+row.id)">审核</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- 省级待审批报表 -->
+    <el-card style="margin-top:20px">
+      <template #header>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span>📋 省级待审批报表</span>
+          <el-tag>{{ provinceReports.length }} 条</el-tag>
+        </div>
+      </template>
+      <el-table :data="provinceReports" stripe v-loading="loading" empty-text="暂无省级待审批报表">
+        <el-table-column label="企业名称" min-width="180">
+          <template #default="{row}">{{ row.enterprise_name || '企业'+row.enterprise_id }}</template>
+        </el-table-column>
+        <el-table-column label="报告年月" width="120">
+          <template #default="{row}">{{ row.report_year }}年{{ row.report_month }}月</template>
+        </el-table-column>
+        <el-table-column prop="current_employed" label="在职人数" width="100" />
+        <el-table-column prop="unemployed_count" label="失业人数" width="100" />
+        <el-table-column label="状态" width="120" align="center">
+          <template #default>
+            <el-tag>待省级审批</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="市级审核时间" width="170">
+          <template #default="{row}">{{ (row.city_review_time||'').slice(0,16).replace('T',' ') }}</template>
         </el-table-column>
         <el-table-column label="操作" width="120">
           <template #default="{row}">
@@ -40,25 +86,28 @@
 import { ref, onMounted } from 'vue'
 import http from '@/utils/http'
 
-const pendingReports = ref([])
+const cityReports = ref([])
+const provinceReports = ref([])
 const loading = ref(false)
 const statCards = ref([
-  { label: '待省级审批', value: 0, icon: 'Stamp', color: '#e6a23c' },
-  { label: '今日已审批', value: 0, icon: 'Checked', color: '#67c23a' },
-  { label: '总就业人数', value: 0, icon: 'User', color: '#409eff' },
+  { label: '市级待审核', value: 0, icon: 'Document', color: '#e6a23c' },
+  { label: '省级待审批', value: 0, icon: 'Stamp', color: '#409eff' },
+  { label: '总就业人数', value: 0, icon: 'User', color: '#67c23a' },
   { label: '总失业人数', value: 0, icon: 'Warning', color: '#f56c6c' },
 ])
 
 onMounted(async () => {
   loading.value = true
   try {
-    const [reports, stats] = await Promise.all([
-      http.get('/data/province/reports').catch(() => []),
+    const [cityRes, provinceRes, stats] = await Promise.all([
+      http.get('/data/province/reports?status_filter=city_review').catch(() => []),
+      http.get('/data/province/reports?status_filter=province_review').catch(() => []),
       http.get('/data/stats/summary').catch(() => ({}))
     ])
-    pendingReports.value = Array.isArray(reports) ? reports : []
-    statCards.value[0].value = stats.pending_province_review || 0
-    statCards.value[1].value = (stats.today_province_reviewed || 0)
+    cityReports.value = Array.isArray(cityRes) ? cityRes : []
+    provinceReports.value = Array.isArray(provinceRes) ? provinceRes : []
+    statCards.value[0].value = stats.pending_city_review || 0
+    statCards.value[1].value = stats.pending_province_review || 0
     statCards.value[2].value = stats.total_employed || 0
     statCards.value[3].value = stats.total_unemployed || 0
   } catch (e) {
