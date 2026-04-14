@@ -53,11 +53,13 @@
             <el-tag :type="statusType(row.status)">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="viewDetail(row)">查看</el-button>
             <el-button v-if="row.status === 'draft'" size="small" type="primary" @click="editReport(row)">编辑</el-button>
             <el-button v-if="row.status === 'draft'" size="small" type="success" @click="submitReport(row)">提交</el-button>
+            <el-button v-if="row.status === 'city_review' || row.status === 'province_review'" size="small" type="warning" @click="withdrawReport(row)">撤回</el-button>
+            <el-button v-if="row.status === 'city_rejected' || row.status === 'province_rejected'" size="small" type="info" @click="editReport(row)">修改重提</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -319,6 +321,17 @@ async function submitReport(row) {
     loadReports()
   } catch (e) {
     if (e !== 'cancel') ElMessage.error('提交失败')
+  }
+}
+
+async function withdrawReport(row) {
+  try {
+    await ElMessageBox.confirm('确定要撤回此报表吗？撤回后将变为草稿状态。', '撤回确认', { type: 'warning' })
+    await http.put(`/admin/reports/${row.id}/withdraw`)
+    ElMessage.success('已撤回')
+    loadReports()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('撤回失败')
   }
 }
 

@@ -1,36 +1,37 @@
 <template>
   <el-card header="用户管理">
     <div style="margin-bottom:16px">
-      <el-button type="primary" icon="Plus" @click="showCreate=true">新建用户</el-button>
+      <el-button type="primary" icon="Plus" @click="openCreate">新建用户</el-button>
     </div>
     <el-table :data="users" stripe v-loading="loading">
       <el-table-column prop="id" label="ID" width="60" />
-      <el-table-column prop="username" label="用户名" />
-      <el-table-column prop="real_name" label="姓名" />
-      <el-table-column prop="role" label="角色">
+      <el-table-column prop="username" label="用户名" width="120" />
+      <el-table-column prop="real_name" label="姓名" width="120" />
+      <el-table-column prop="role" label="角色" width="120">
         <template #default="{row}">
           <el-tag :type="roleType(row.role)">{{ roleLabel(row.role) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="city_code" label="城市代码" />
-      <el-table-column label="状态">
+      <el-table-column prop="city_code" label="城市代码" width="100" />
+      <el-table-column label="状态" width="80" align="center">
         <template #default="{row}">
           <el-tag :type="row.is_active?'success':'danger'">{{ row.is_active?'启用':'禁用' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120">
+      <el-table-column label="操作" width="200" fixed="right">
         <template #default="{row}">
-          <el-button link :type="row.is_active?'danger':'success'" @click="toggle(row)">
+          <el-button size="small" type="primary" @click="openEdit(row)">编辑</el-button>
+          <el-button size="small" :type="row.is_active?'danger':'success'" @click="toggle(row)">
             {{ row.is_active?'禁用':'启用' }}
           </el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="showCreate" title="新建用户" width="500px">
+    <el-dialog v-model="showDialog" :title="editingId ? '编辑用户' : '新建用户'" width="500px">
       <el-form :model="form" label-width="100px">
-        <el-form-item label="用户名"><el-input v-model="form.username" /></el-form-item>
-        <el-form-item label="密码"><el-input v-model="form.password" type="password" /></el-form-item>
+        <el-form-item label="用户名"><el-input v-model="form.username" :disabled="!!editingId" /></el-form-item>
+        <el-form-item label="密码" v-if="!editingId"><el-input v-model="form.password" type="password" /></el-form-item>
         <el-form-item label="姓名"><el-input v-model="form.real_name" /></el-form-item>
         <el-form-item label="角色">
           <el-select v-model="form.role" style="width:100%">
@@ -49,8 +50,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showCreate=false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="createUser">创建</el-button>
+        <el-button @click="showDialog=false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="saveUser">{{ editingId ? '保存' : '创建' }}</el-button>
       </template>
     </el-dialog>
   </el-card>
@@ -63,8 +64,9 @@ import http from '@/utils/http'
 
 const users = ref([])
 const loading = ref(false)
-const showCreate = ref(false)
-const creating = ref(false)
+const saving = ref(false)
+const showDialog = ref(false)
+const editingId = ref(null)
 const form = ref({ username: '', password: '', real_name: '', role: 'enterprise', city_code: '', enterprise_id: null })
 
 const roleLabel = (r) => ({ enterprise:'企业用户', city:'市级审核', province:'省级审批', province_analyst:'数据分析员', admin:'系统管理员' }[r] || r)
@@ -72,23 +74,57 @@ const roleType = (r) => ({ enterprise:'primary', city:'success', province:'warni
 
 onMounted(async () => {
   loading.value = true
-  try { users.value = await http.get('/admin/users') }
+  try { 
+    const res = await http.get('/admin/users')
+    users.value = Array.isArray(res) ? res : (res.items || [])
+  }
   finally { loading.value = false }
 })
+
+function openCreate() {
+  editingId.value = null
+  form.value = { username: '', password: '', real_name: '', role: 'enterprise', city_code: '', enterprise_id: null }
+  showDialog.value = true
+}
+
+function openEdit(row) {
+  editingId.value = row.id
+  form.value = { 
+    username: row.username, password: '', 
+    real_name: row.real_name || '', role: row.role,
+    city_code: row.city_code || '', enterprise_id: row.enterprise_id || null
+  }
+  showDialog.value = true
+}
+
+async function saveUser() {
+  saving.value = true
+  try {
+    if (editingId.value) {
+      const payload = { real_name: form.value.real_name, role: form.value.role }
+      if (form.value.city_code) payload.city_code = form.value.city_code
+      if (form.value.enterprise_id) payload.enterprise_id = form.value.enterprise_id
+      await http.put(`/admin/users/${editingId.value}`, payload)
+      ElMessage.success('用户更新成功')
+    } else {
+      await http.post('/admin/users', form.value)
+      ElMessage.success('用户创建成功')
+    }
+    showDialog.value = false
+    // 重新加载列表
+    const res = await http.get('/admin/users')
+    users.value = Array.isArray(res) ? res : (res.items || [])
+  } catch (e) {
+    console.error('保存用户失败:', e)
+    ElMessage.error(editingId.value ? '更新失败' : '创建失败')
+  } finally {
+    saving.value = false
+  }
+}
 
 const toggle = async (row) => {
   await http.put(`/admin/users/${row.id}/toggle`)
   row.is_active = !row.is_active
   ElMessage.success(row.is_active ? '已启用' : '已禁用')
-}
-
-const createUser = async () => {
-  creating.value = true
-  try {
-    const u = await http.post('/admin/users', form.value)
-    users.value.push(u)
-    showCreate.value = false
-    ElMessage.success('用户创建成功')
-  } finally { creating.value = false }
 }
 </script>

@@ -66,6 +66,8 @@ const roleMenus = {
   city: [
     { path: '/city/dashboard', icon: 'House', label: '首页概览' },
     { path: '/city/review', icon: 'Checked', label: '待审核报表' },
+    { path: '/city/analytics', icon: 'TrendCharts', label: '数据分析' },
+    { path: '/city/screen', icon: 'Monitor', label: '数据大屏' },
   ],
   province: [
     { path: '/province/dashboard', icon: 'House', label: '首页概览' },
@@ -73,8 +75,6 @@ const roleMenus = {
     { path: '/province/approve', icon: 'Stamp', label: '待审批报表' },
     { path: '/province/analytics', icon: 'TrendCharts', label: '数据分析' },
     { path: '/province/screen', icon: 'Monitor', label: '数据大屏' },
-    { path: '/province/admin/users', icon: 'User', label: '用户管理' },
-    { path: '/province/admin/enterprises', icon: 'OfficeBuilding', label: '企业管理' },
   ],
   province_analyst: [
     { path: '/province/analytics', icon: 'TrendCharts', label: '数据分析' },

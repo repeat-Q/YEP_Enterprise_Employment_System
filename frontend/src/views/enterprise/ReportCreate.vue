@@ -14,12 +14,12 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="报告年份" prop="report_year">
-              <el-input-number v-model="form.report_year" :min="2020" :max="2030" style="width:100%" />
+              <el-date-picker v-model="form.report_year" type="year" placeholder="选择年份" value-format="YYYY" style="width:100%" @change="onYearChange" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="报告月份" prop="report_month">
-              <el-select v-model="form.report_month" style="width:100%" @change="onMonthChange">
+              <el-select v-model="form.report_month" placeholder="选择月份" style="width:100%" @change="onMonthChange">
                 <el-option v-for="m in 12" :key="m" :value="m" :label="m+'月'" />
               </el-select>
             </el-form-item>
@@ -161,6 +161,12 @@ const form = ref({
 })
 
 const isHalfMonthMode = computed(() => [1, 2, 3].includes(form.value.report_month))
+
+const onYearChange = (val) => {
+  if (val) {
+    form.value.report_year = parseInt(val)
+  }
+}
 
 const onMonthChange = (month) => {
   if ([1, 2, 3].includes(month)) {

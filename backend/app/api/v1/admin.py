@@ -39,6 +39,32 @@ def create_user(
     db.refresh(user)
     return user
 
+@router.put("/users/{user_id}", response_model=UserOut)
+def update_user(
+    user_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.admin))
+):
+    """更新用户信息"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    if "real_name" in data and data["real_name"]:
+        user.real_name = data["real_name"]
+    if "role" in data and data["role"]:
+        try:
+            user.role = UserRole(data["role"])
+        except ValueError:
+            pass
+    if "city_code" in data:
+        user.city_code = data["city_code"]
+    if "enterprise_id" in data:
+        user.enterprise_id = data["enterprise_id"]
+    db.commit()
+    db.refresh(user)
+    return user
+
 @router.put("/users/{user_id}/toggle", response_model=UserOut)
 def toggle_user_status(
     user_id: int,
@@ -74,6 +100,54 @@ def create_enterprise(
     db.commit()
     db.refresh(enterprise)
     return enterprise
+
+@router.put("/enterprises/{enterprise_id}", response_model=EnterpriseOut)
+def update_enterprise(
+    enterprise_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.admin))
+):
+    """更新企业信息"""
+    enterprise = db.query(Enterprise).filter(Enterprise.id == enterprise_id).first()
+    if not enterprise:
+        raise HTTPException(status_code=404, detail="企业不存在")
+    
+    updatable_fields = ["name", "credit_code", "city_code", "district_code", 
+                        "industry_code", "enterprise_type", "address", 
+                        "contact_name", "contact_phone"]
+    for field in updatable_fields:
+        if field in data and data[field] is not None:
+            setattr(enterprise, field, data[field])
+    
+    db.commit()
+    db.refresh(enterprise)
+    return enterprise
+
+@router.delete("/enterprises/{enterprise_id}")
+def delete_enterprise(
+    enterprise_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.admin))
+):
+    """删除企业（软删除）"""
+    enterprise = db.query(Enterprise).filter(Enterprise.id == enterprise_id).first()
+    if not enterprise:
+        raise HTTPException(status_code=404, detail="企业不存在")
+    
+    # 检查是否有报表关联
+    report_count = db.query(EmploymentReport).filter(
+        EmploymentReport.enterprise_id == enterprise_id
+    ).count()
+    if report_count > 0:
+        # 软删除
+        enterprise.is_active = False
+        db.commit()
+        return {"message": "企业已停用（存在关联报表，已软删除）"}
+    else:
+        db.delete(enterprise)
+        db.commit()
+        return {"message": "企业已删除"}
 
 @router.get("/me", response_model=UserOut)
 def get_my_profile(current_user: User = Depends(get_current_user)):
@@ -277,6 +351,28 @@ def admin_submit_report(
     
     report.status = ReportStatus.city_review
     report.submit_time = datetime.now()
+    db.commit()
+    db.refresh(report)
+    
+    ent_name = report.enterprise.name if report.enterprise else ""
+    return serialize_report(report, ent_name)
+
+@router.put("/reports/{report_id}/withdraw")
+def admin_withdraw_report(
+    report_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.admin, UserRole.enterprise))
+):
+    """撤回报表（变为草稿）"""
+    report = db.query(EmploymentReport).filter(EmploymentReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="报表不存在")
+    
+    if report.status not in [ReportStatus.city_review, ReportStatus.province_review]:
+        raise HTTPException(status_code=400, detail="只有审核中的报表才能撤回")
+    
+    report.status = ReportStatus.draft
+    report.submit_time = None
     db.commit()
     db.refresh(report)
     

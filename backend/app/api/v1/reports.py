@@ -257,6 +257,29 @@ def get_stats_summary(
         EmploymentReport.status == ReportStatus.province_approved).all()
     total_employed = sum(r.current_employed for r in approved_reports)
     total_unemployed = sum(r.unemployed_count for r in approved_reports)
+    
+    # 市级审核统计
+    city_rejected = db.query(func.count(EmploymentReport.id)).filter(
+        EmploymentReport.status == ReportStatus.city_rejected).scalar()
+    
+    # 今日已审核数（市级+省级）
+    from sqlalchemy import cast, Date
+    today = datetime.now().date()
+    today_city_reviewed = db.query(func.count(EmploymentReport.id)).filter(
+        cast(EmploymentReport.city_review_time, Date) == today
+    ).scalar() if hasattr(EmploymentReport, 'city_review_time') else 0
+    today_province_reviewed = db.query(func.count(EmploymentReport.id)).filter(
+        cast(EmploymentReport.province_review_time, Date) == today
+    ).scalar() if hasattr(EmploymentReport, 'province_review_time') else 0
+    
+    # 本月审核数
+    month_start = today.replace(day=1)
+    month_city_reviewed = db.query(func.count(EmploymentReport.id)).filter(
+        EmploymentReport.city_review_time >= month_start
+    ).scalar() if hasattr(EmploymentReport, 'city_review_time') else 0
+    month_province_reviewed = db.query(func.count(EmploymentReport.id)).filter(
+        EmploymentReport.province_review_time >= month_start
+    ).scalar() if hasattr(EmploymentReport, 'province_review_time') else 0
 
     return {
         "total_enterprises": total_enterprises,
@@ -265,7 +288,12 @@ def get_stats_summary(
         "pending_province_review": pending_province,
         "total_employed": total_employed,
         "total_unemployed": total_unemployed,
-        "approved_reports": len(approved_reports)
+        "approved_reports": len(approved_reports),
+        "city_rejected": city_rejected,
+        "today_city_reviewed": today_city_reviewed or 0,
+        "today_province_reviewed": today_province_reviewed or 0,
+        "month_city_reviewed": month_city_reviewed or 0,
+        "month_province_reviewed": month_province_reviewed or 0,
     }
 
 @router.get("/stats/trend")
@@ -274,16 +302,23 @@ def get_employment_trend(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """就业趋势数据"""
+    """就业趋势数据（包含所有已提交的报表，不限于已批准）"""
     from datetime import datetime as dt
     from sqlalchemy import func
 
     if not year:
         year = dt.now().year
 
+    # 查询所有已提交的报表（非草稿）
+    from app.models.models import ReportStatus
+    submitted_statuses = [
+        ReportStatus.city_review, ReportStatus.city_approved,
+        ReportStatus.province_review, ReportStatus.province_approved,
+        ReportStatus.city_rejected, ReportStatus.province_rejected
+    ]
     reports = db.query(EmploymentReport).filter(
         EmploymentReport.report_year == year,
-        EmploymentReport.status == ReportStatus.province_approved
+        EmploymentReport.status.in_(submitted_statuses)
     ).order_by(EmploymentReport.report_month).all()
 
     trend = {}
@@ -291,8 +326,10 @@ def get_employment_trend(
         key = r.report_month
         if key not in trend:
             trend[key] = {"month": key, "employed": 0, "unemployed": 0, "new_employed": 0}
-        trend[key]["employed"] += r.current_employed
-        trend[key]["unemployed"] += r.unemployed_count
-        trend[key]["new_employed"] += r.new_employed
+        trend[key]["employed"] += r.current_employed or 0
+        trend[key]["unemployed"] += r.unemployed_count or 0
+        trend[key]["new_employed"] += r.new_employed or 0
 
-    return {"year": year, "trend": list(trend.values())}
+    # 排序
+    result = sorted(trend.values(), key=lambda x: x["month"])
+    return {"year": year, "trend": result}

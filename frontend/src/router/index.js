@@ -26,6 +26,8 @@ const router = createRouter({
         { path: 'dashboard', component: () => import('@/views/city/Dashboard.vue') },
         { path: 'review', component: () => import('@/views/city/ReviewList.vue') },
         { path: 'review/:id', component: () => import('@/views/city/ReviewDetail.vue') },
+        { path: 'analytics', component: () => import('@/views/province/Analytics.vue') },
+        { path: 'screen', component: () => import('@/views/province/DataScreen.vue') },
       ]
     },
     {
