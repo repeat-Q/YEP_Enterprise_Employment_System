@@ -43,19 +43,35 @@ const showCreate = ref(false)
 const creating = ref(false)
 const form = ref({ name:'', credit_code:'', city_code:'', district_code:'', industry_code:'', enterprise_type:'', address:'', contact_name:'', contact_phone:'' })
 
-onMounted(async () => {
+async function loadEnterprises() {
   loading.value = true
-  try { enterprises.value = await http.get('/admin/enterprises') }
-  finally { loading.value = false }
+  try {
+    const res = await http.get('/admin/enterprises')
+    enterprises.value = Array.isArray(res) ? res : (res.items || [])
+  } catch (e) {
+    console.error('加载企业列表失败:', e)
+    ElMessage.error('加载企业列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadEnterprises()
 })
 
 const createEnterprise = async () => {
   creating.value = true
   try {
-    const e = await http.post('/admin/enterprises', form.value)
-    enterprises.value.push(e)
-    showCreate.value = false
+    await http.post('/admin/enterprises', form.value)
     ElMessage.success('企业创建成功')
-  } finally { creating.value = false }
+    showCreate.value = false
+    loadEnterprises()
+  } catch (e) {
+    console.error('创建企业失败:', e)
+    ElMessage.error('创建企业失败')
+  } finally {
+    creating.value = false
+  }
 }
 </script>
